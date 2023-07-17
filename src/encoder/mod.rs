@@ -12,7 +12,7 @@ use std::{
 
 use crate::{
     error::TiffResult,
-    tags::{CompressionMethod, ResolutionUnit, Tag, SubfileType},
+    tags::{CompressionMethod, ResolutionUnit, Tag, SubfileType, NewSubfileType},
     TiffError, TiffFormatError,
 };
 
@@ -538,6 +538,13 @@ impl<'a, W: 'a + Write + Seek, T: ColorType, K: TiffKind, D: Compression>
     /// Set image subfiletype
     pub fn subfiletype(&mut self, value: SubfileType) {
         self.encoder.write_tag(Tag::SubfileType, value.to_u16()).unwrap();
+    }
+
+    /// Set image newsubfiletype
+    pub fn newsubfiletype(&mut self, value: NewSubfileType) {
+        self.encoder
+            .write_tag(Tag::NewSubfileType, value.to_u16())
+            .unwrap();
     }
 
     /// Set image number of lines per strip
