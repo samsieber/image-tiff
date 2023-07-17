@@ -12,7 +12,7 @@ use std::{
 
 use crate::{
     error::TiffResult,
-    tags::{CompressionMethod, ResolutionUnit, Tag},
+    tags::{CompressionMethod, ResolutionUnit, Tag, SubfileType},
     TiffError, TiffFormatError,
 };
 
@@ -532,6 +532,12 @@ impl<'a, W: 'a + Write + Seek, T: ColorType, K: TiffKind, D: Compression>
     /// Set image y-resolution
     pub fn y_resolution(&mut self, value: Rational) {
         self.encoder.write_tag(Tag::YResolution, value).unwrap();
+    }
+
+
+    /// Set image subfiletype
+    pub fn subfiletype(&mut self, value: SubfileType) {
+        self.encoder.write_tag(Tag::SubfileType, value.to_u16()).unwrap();
     }
 
     /// Set image number of lines per strip
