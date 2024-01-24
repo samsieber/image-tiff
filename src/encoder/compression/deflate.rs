@@ -45,7 +45,7 @@ impl Default for Deflate {
 impl Compression for Deflate {
     const COMPRESSION_METHOD: CompressionMethod = CompressionMethod::Deflate;
 
-    fn get_algorithm(&self) -> Compressor {
+    fn get_algorithm(&self, _width: usize) -> Compressor {
         Compressor::Deflate(*self)
     }
 }

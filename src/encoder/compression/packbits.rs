@@ -12,7 +12,7 @@ pub struct Packbits;
 impl Compression for Packbits {
     const COMPRESSION_METHOD: CompressionMethod = CompressionMethod::PackBits;
 
-    fn get_algorithm(&self) -> Compressor {
+    fn get_algorithm(&self, _width: usize) -> Compressor {
         Compressor::Packbits(*self)
     }
 }

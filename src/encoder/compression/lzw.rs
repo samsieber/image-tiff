@@ -9,7 +9,7 @@ pub struct Lzw;
 impl Compression for Lzw {
     const COMPRESSION_METHOD: CompressionMethod = CompressionMethod::LZW;
 
-    fn get_algorithm(&self) -> Compressor {
+    fn get_algorithm(&self, _width: usize) -> Compressor {
         Compressor::Lzw(*self)
     }
 }

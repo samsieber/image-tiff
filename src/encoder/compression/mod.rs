@@ -5,8 +5,10 @@ mod deflate;
 mod lzw;
 mod packbits;
 mod uncompressed;
+mod fax4;
 
 pub use self::deflate::{Deflate, DeflateLevel};
+pub use self::fax4::Fax4;
 pub use self::lzw::Lzw;
 pub use self::packbits::Packbits;
 pub use self::uncompressed::Uncompressed;
@@ -24,7 +26,7 @@ pub trait Compression: CompressionAlgorithm {
     const COMPRESSION_METHOD: CompressionMethod;
 
     /// Method to optain a type that can store each variant of comression algorithm.
-    fn get_algorithm(&self) -> Compressor;
+    fn get_algorithm(&self, width: usize) -> Compressor;
 }
 
 /// An enum to store each compression algorithm.
@@ -33,6 +35,7 @@ pub enum Compressor {
     Lzw(Lzw),
     Deflate(Deflate),
     Packbits(Packbits),
+    Fax4(Fax4),
 }
 
 impl Default for Compressor {
@@ -49,6 +52,7 @@ impl CompressionAlgorithm for Compressor {
             Compressor::Lzw(algorithm) => algorithm.write_to(writer, bytes),
             Compressor::Deflate(algorithm) => algorithm.write_to(writer, bytes),
             Compressor::Packbits(algorithm) => algorithm.write_to(writer, bytes),
+            Compressor::Fax4(algorithm) => algorithm.write_to(writer, bytes),
         }
     }
 }

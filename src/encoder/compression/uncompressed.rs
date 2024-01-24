@@ -8,7 +8,7 @@ pub struct Uncompressed;
 impl Compression for Uncompressed {
     const COMPRESSION_METHOD: CompressionMethod = CompressionMethod::None;
 
-    fn get_algorithm(&self) -> Compressor {
+    fn get_algorithm(&self, _width: usize) -> Compressor {
         Compressor::Uncompressed(*self)
     }
 }

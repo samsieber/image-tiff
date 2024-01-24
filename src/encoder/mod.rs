@@ -492,7 +492,7 @@ impl<'a, W: 'a + Write + Seek, T: ColorType, K: TiffKind, D: Compression>
 
         self.encoder
             .writer
-            .set_compression(self.compression.get_algorithm());
+            .set_compression(self.compression.get_algorithm(self.width as usize));
 
         let mut idx = 0;
         while self.next_strip_input_len() > 0 {
