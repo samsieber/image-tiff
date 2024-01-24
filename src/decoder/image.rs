@@ -1,5 +1,5 @@
 use super::ifd::{Directory, Value};
-use super::stream::{ByteOrder, DeflateReader, LZWReader, PackBitsReader};
+use super::stream::{ByteOrder, DeflateReader, Fax4Reader, LZWReader, PackBitsReader};
 use super::tag_reader::TagReader;
 use super::{fp_predict_f32, fp_predict_f64, DecodingBuffer, Limits};
 use super::{stream::SmartReader, ChunkType};
@@ -369,6 +369,7 @@ impl Image {
         compression_method: CompressionMethod,
         compressed_length: u64,
         jpeg_tables: Option<&[u8]>,
+        width: usize,
     ) -> TiffResult<Box<dyn Read + 'r>> {
         Ok(match compression_method {
             CompressionMethod::None => Box::new(reader),
@@ -443,6 +444,7 @@ impl Image {
 
                 Box::new(Cursor::new(data))
             }
+            CompressionMethod::Fax4 => Box::new(Fax4Reader::new(reader, compressed_length as usize, width)),
             method => {
                 return Err(TiffError::UnsupportedError(
                     TiffUnsupportedError::UnsupportedCompressionMethod(method),
@@ -622,6 +624,7 @@ impl Image {
             compression_method,
             *compressed_bytes,
             self.jpeg_tables.as_deref().map(|a| &**a),
+            self.width as usize,
         )?;
 
 
