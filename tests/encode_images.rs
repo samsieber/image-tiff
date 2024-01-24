@@ -497,9 +497,9 @@ fn test_rows_per_strip() {
         let mut img_encoder = TiffEncoder::new(&mut file).unwrap();
 
         let mut image = img_encoder.new_image::<colortype::Gray8>(100, 100).unwrap();
-        assert_eq!(image.next_strip_sample_count(), 100 * 100);
+        assert_eq!(image.next_strip_input_len(), 100 * 100);
         image.rows_per_strip(2).unwrap();
-        assert_eq!(image.next_strip_sample_count(), 2 * 100);
+        assert_eq!(image.next_strip_input_len(), 2 * 100);
 
         let img2: Vec<u8> = vec![0; 2 * 100];
         image.write_strip(&img2[..]).unwrap();

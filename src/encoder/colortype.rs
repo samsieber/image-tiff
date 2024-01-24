@@ -12,6 +12,14 @@ pub trait ColorType {
     const SAMPLE_FORMAT: &'static [SampleFormat];
 }
 
+pub struct Gray1;
+impl ColorType for Gray1 {
+    type Inner = u8;
+    const TIFF_VALUE: PhotometricInterpretation = PhotometricInterpretation::BlackIsZero;
+    const BITS_PER_SAMPLE: &'static [u16] = &[1];
+    const SAMPLE_FORMAT: &'static [SampleFormat] = &[SampleFormat::Uint];
+}
+
 pub struct Gray8;
 impl ColorType for Gray8 {
     type Inner = u8;

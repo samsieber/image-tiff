@@ -304,10 +304,10 @@ impl<'a, W: Write + Seek, K: TiffKind> Drop for DirectoryEncoder<'a, W, K> {
 /// image.rows_per_strip(2).unwrap();
 ///
 /// let mut idx = 0;
-/// while image.next_strip_sample_count() > 0 {
-///     let sample_count = image.next_strip_sample_count() as usize;
-///     image.write_strip(&image_data[idx..idx+sample_count]).unwrap();
-///     idx += sample_count;
+/// while image.next_strip_input_len() > 0 {
+///     let input_len = image.next_strip_input_len() as usize;
+///     image.write_strip(&image_data[idx..idx+input_len]).unwrap();
+///     idx += input_len;
 /// }
 /// image.finish().unwrap();
 /// # }
@@ -357,7 +357,7 @@ impl<'a, W: 'a + Write + Seek, T: ColorType, K: TiffKind, D: Compression>
         }
 
         let row_samples = u64::from(width) * u64::try_from(<T>::BITS_PER_SAMPLE.len())?;
-        let row_bytes = row_samples * u64::from(<T::Inner>::BYTE_LEN);
+        let row_bytes = crate::util::u64_div_ceil(row_samples as u64 * (<T>::BITS_PER_SAMPLE[0] as u64),8u64 * <T::Inner>::BYTE_LEN as u64);
 
         // Limit the strip size to prevent potential memory and security issues.
         // Also keep the multiple strip handling 'oiled'
@@ -368,7 +368,7 @@ impl<'a, W: 'a + Write + Seek, T: ColorType, K: TiffKind, D: Compression>
             }
         };
 
-        let strip_count = (u64::from(height) + rows_per_strip - 1) / rows_per_strip;
+        let strip_count = crate::util::u64_div_ceil(u64::from(height), rows_per_strip);
 
         encoder.write_tag(Tag::ImageWidth, width)?;
         encoder.write_tag(Tag::ImageLength, height)?;
@@ -406,6 +406,7 @@ impl<'a, W: 'a + Write + Seek, T: ColorType, K: TiffKind, D: Compression>
     }
 
     /// Number of samples the next strip should have.
+    #[deprecated(since="0.9.1", note="please use `next_strip_input_len` instead, which accounts for intra-byte sample sizes")]
     pub fn next_strip_sample_count(&self) -> u64 {
         if self.strip_idx >= self.strip_count {
             return 0;
@@ -418,12 +419,37 @@ impl<'a, W: 'a + Write + Seek, T: ColorType, K: TiffKind, D: Compression>
         (end_row - start_row) * self.row_samples
     }
 
+    /// How many elements in the input correspond to a single row or samples
+    /// Since elements do not have to have a one-to-one mapping with samples, 
+    /// we fall back to bits_per_sample and byte_len to figure things out
+    pub fn row_input_len(&self) -> u64
+        where [T::Inner]: TiffValue
+    {
+        crate::util::u64_div_ceil(self.row_samples * T::BITS_PER_SAMPLE[0] as u64, 8 as u64 * <T::Inner>::BYTE_LEN as u64)
+    }
+
+    /// Length of the next input for the next strip should be.
+    pub fn next_strip_input_len(&self) -> u64         
+        where [T::Inner]: TiffValue
+    {
+        
+        if self.strip_idx >= self.strip_count {
+            return 0;
+        }
+
+        let raw_start_row = self.strip_idx * self.rows_per_strip;
+        let start_row = cmp::min(u64::from(self.height), raw_start_row);
+        let end_row = cmp::min(u64::from(self.height), raw_start_row + self.rows_per_strip);
+
+        (end_row - start_row) * self.row_input_len()
+    }
+
     /// Write a single strip.
     pub fn write_strip(&mut self, value: &[T::Inner]) -> TiffResult<()>
     where
         [T::Inner]: TiffValue,
     {
-        let samples = self.next_strip_sample_count();
+        let samples = self.next_strip_input_len();
         if u64::try_from(value.len())? != samples {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -448,7 +474,7 @@ impl<'a, W: 'a + Write + Seek, T: ColorType, K: TiffKind, D: Compression>
     where
         [T::Inner]: TiffValue,
     {
-        let num_pix = usize::try_from(self.width)?
+        let expected_len = usize::try_from(self.row_input_len())?
             .checked_mul(usize::try_from(self.height)?)
             .ok_or_else(|| {
                 io::Error::new(
@@ -456,7 +482,7 @@ impl<'a, W: 'a + Write + Seek, T: ColorType, K: TiffKind, D: Compression>
                     "Image width * height exceeds usize",
                 )
             })?;
-        if data.len() < num_pix {
+        if data.len() < expected_len {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "Input data slice is undersized for provided dimensions",
@@ -469,10 +495,10 @@ impl<'a, W: 'a + Write + Seek, T: ColorType, K: TiffKind, D: Compression>
             .set_compression(self.compression.get_algorithm());
 
         let mut idx = 0;
-        while self.next_strip_sample_count() > 0 {
-            let sample_count = usize::try_from(self.next_strip_sample_count())?;
-            self.write_strip(&data[idx..idx + sample_count])?;
-            idx += sample_count;
+        while self.next_strip_input_len() > 0 {
+            let input_len = usize::try_from(self.next_strip_input_len())?;
+            self.write_strip(&data[idx..(idx + input_len)])?;
+            idx += input_len;
         }
 
         self.encoder.writer.reset_compression();
