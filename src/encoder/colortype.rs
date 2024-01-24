@@ -19,6 +19,13 @@ impl ColorType for Gray1 {
     const BITS_PER_SAMPLE: &'static [u16] = &[1];
     const SAMPLE_FORMAT: &'static [SampleFormat] = &[SampleFormat::Uint];
 }
+pub struct Gray1White;
+impl ColorType for Gray1White {
+    type Inner = u8;
+    const TIFF_VALUE: PhotometricInterpretation = PhotometricInterpretation::WhiteIsZero;
+    const BITS_PER_SAMPLE: &'static [u16] = &[1];
+    const SAMPLE_FORMAT: &'static [SampleFormat] = &[SampleFormat::Uint];
+}
 
 pub struct Gray8;
 impl ColorType for Gray8 {
