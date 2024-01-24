@@ -14,6 +14,7 @@ pub mod decoder;
 pub mod encoder;
 mod error;
 pub mod tags;
+pub mod util;
 
 pub use self::error::{TiffError, TiffFormatError, TiffResult, TiffUnsupportedError, UsageError};
 
