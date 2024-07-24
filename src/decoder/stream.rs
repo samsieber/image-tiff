@@ -338,9 +338,8 @@ impl <R: Read> Read for Fax4Reader<R> {
         self.reader.read_exact(bytes.as_mut_slice())?;
         let byte_width = (self.width + 7)/ 8;
         let mut line = 0;
-
         decoder::decode_g4(bytes.into_iter(), self.width as u16, None,  |transitions| {
-            pels(transitions, self.width as u16).enumerate().for_each(|(col, color)| {
+            for (col, color) in pels(transitions, self.width as u16).enumerate() {
                 let val = match color {
                     Color::Black => 0,
                     Color::White => 255,
@@ -351,7 +350,7 @@ impl <R: Read> Read for Fax4Reader<R> {
                 let idx = line * byte_width + col / 8;
                 // println!("col: {}, bit_idx: {}, bit: {:08b}, idx: {}, existing: {:08b}", col, col % 8, bit, idx, buf[idx]);
                 buf[idx] += bit;
-            });
+            }
             line += 1;
         });
 

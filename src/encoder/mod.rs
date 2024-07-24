@@ -114,7 +114,19 @@ impl<W: Write + Seek, K: TiffKind> TiffEncoder<W, K> {
         compression: D,
     ) -> TiffResult<ImageEncoder<W, C, K, D>> {
         let encoder = DirectoryEncoder::new(&mut self.writer)?;
-        ImageEncoder::with_compression(encoder, width, height, compression)
+        ImageEncoder::with_compression(encoder, width, height, compression, (ResolutionUnit::None, Rational{n:1,d:1}, Rational{n:1,d:1}))
+    }
+
+    /// Create an [`ImageEncoder`] to encode an image one slice at a time.
+    pub fn new_image_with_compression_dpi<C: ColorType, D: Compression>(
+        &mut self,
+        width: u32,
+        height: u32,
+        compression: D,
+        dpi: u32,
+    ) -> TiffResult<ImageEncoder<W, C, K, D>> {
+        let encoder = DirectoryEncoder::new(&mut self.writer)?;
+        ImageEncoder::with_compression(encoder, width, height, compression, (ResolutionUnit::Inch, Rational{n:dpi,d:1}, Rational{n:dpi,d:1}))
     }
 
     /// Convenience function to write an entire image from memory.
@@ -145,7 +157,24 @@ impl<W: Write + Seek, K: TiffKind> TiffEncoder<W, K> {
     {
         let encoder = DirectoryEncoder::new(&mut self.writer)?;
         let image: ImageEncoder<W, C, K, D> =
-            ImageEncoder::with_compression(encoder, width, height, compression)?;
+            ImageEncoder::with_compression(encoder, width, height, compression, (ResolutionUnit::None, Rational{n:1,d:1}, Rational{n:1,d:1}))?;
+        image.write_data(data)
+    }
+
+    pub fn write_image_with_compression_dpi<C: ColorType, D: Compression>(
+        &mut self,
+        width: u32,
+        height: u32,
+        compression: D,
+        dpi: u32,
+        data: &[C::Inner],
+    ) -> TiffResult<()>
+    where
+        [C::Inner]: TiffValue,
+    {
+        let encoder = DirectoryEncoder::new(&mut self.writer)?;
+        let image: ImageEncoder<W, C, K, D> =
+            ImageEncoder::with_compression(encoder, width, height, compression, (ResolutionUnit::Inch, Rational{n:dpi,d:1}, Rational{n:dpi,d:1}))?;
         image.write_data(data)
     }
 }
@@ -341,7 +370,7 @@ impl<'a, W: 'a + Write + Seek, T: ColorType, K: TiffKind, D: Compression>
     where
         D: Default,
     {
-        Self::with_compression(encoder, width, height, D::default())
+        Self::with_compression(encoder, width, height, D::default(), (ResolutionUnit::None, Rational{n:1,d:1}, Rational{n:1,d:1}))
     }
 
     fn with_compression(
@@ -349,6 +378,7 @@ impl<'a, W: 'a + Write + Seek, T: ColorType, K: TiffKind, D: Compression>
         width: u32,
         height: u32,
         compression: D,
+        resolution: (ResolutionUnit, Rational, Rational)
     ) -> TiffResult<Self> {
         if width == 0 || height == 0 {
             return Err(TiffError::FormatError(TiffFormatError::InvalidDimensions(
@@ -385,9 +415,9 @@ impl<'a, W: 'a + Write + Seek, T: ColorType, K: TiffKind, D: Compression>
             Tag::SamplesPerPixel,
             u16::try_from(<T>::BITS_PER_SAMPLE.len())?,
         )?;
-        encoder.write_tag(Tag::XResolution, Rational { n: 1, d: 1 })?;
-        encoder.write_tag(Tag::YResolution, Rational { n: 1, d: 1 })?;
-        encoder.write_tag(Tag::ResolutionUnit, ResolutionUnit::None.to_u16())?;
+        encoder.write_tag(Tag::XResolution, resolution.1)?;
+        encoder.write_tag(Tag::YResolution, resolution.2)?;
+        encoder.write_tag(Tag::ResolutionUnit, resolution.0.to_u16())?;
 
         Ok(ImageEncoder {
             encoder,
