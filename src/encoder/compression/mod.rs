@@ -6,12 +6,14 @@ mod lzw;
 mod packbits;
 mod uncompressed;
 mod fax4;
+mod ccittg4;
 
 pub use self::deflate::{Deflate, DeflateLevel};
 pub use self::fax4::Fax4;
 pub use self::lzw::Lzw;
 pub use self::packbits::Packbits;
 pub use self::uncompressed::Uncompressed;
+pub use self::ccittg4::CcittG4;
 
 /// An algorithm used for compression
 pub trait CompressionAlgorithm {
@@ -36,6 +38,7 @@ pub enum Compressor {
     Deflate(Deflate),
     Packbits(Packbits),
     Fax4(Fax4),
+    CcittG4(CcittG4),
 }
 
 impl Default for Compressor {
@@ -53,6 +56,7 @@ impl CompressionAlgorithm for Compressor {
             Compressor::Deflate(algorithm) => algorithm.write_to(writer, bytes),
             Compressor::Packbits(algorithm) => algorithm.write_to(writer, bytes),
             Compressor::Fax4(algorithm) => algorithm.write_to(writer, bytes),
+            Compressor::CcittG4(algorithm) => algorithm.write_to(writer, bytes),
         }
     }
 }
