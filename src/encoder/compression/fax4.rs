@@ -56,9 +56,9 @@ impl CompressionAlgorithm for Fax4 {
             if first {
                 first = false;
             }
-            encoder.encode_line(pels, self.bits_per_row as u16) // TODO: return error instead? We might want to error on dimensions instead...
+            encoder.encode_line(pels, self.bits_per_row as u16).unwrap() // TODO: return error instead? We might want to error on dimensions instead...
         }
-        let vec_writer = encoder.finish();
+        let vec_writer = encoder.finish().unwrap();
         let buf = vec_writer.finish();
         writer.write_all(&buf)?;
         Ok(buf.len() as u64)
