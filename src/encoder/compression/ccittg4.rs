@@ -45,7 +45,7 @@ fn to_pels(v: u8) -> [Color; 8] {
 impl CompressionAlgorithm for CcittG4 {
     fn write_to<W: Write>(&mut self, writer: &mut W, bytes: &[u8]) -> Result<u64, io::Error> {
         let mut encoder = ccitt_t4_t6::g42d::encode::Encoder::new(self.bits_per_row, bytes);
-        encoder.skip_tail = 8 - (self.bits_per_row % 8);
+        encoder.skip_tail = (8 - (self.bits_per_row % 8)) % 8;
         let buf = encoder.encode();
         writer.write_all(&buf)?;
         Ok(buf.len() as u64)
