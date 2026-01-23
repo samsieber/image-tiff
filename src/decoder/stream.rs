@@ -358,6 +358,55 @@ impl <R: Read> Read for Fax4Reader<R> {
     }
 }
 
+///
+/// ## Fax3 Reader
+///
+#[derive(Debug)]
+pub struct Fax3Reader<R>
+where
+    R: Read,
+{
+    reader: R,
+    len: usize,
+    width: usize,
+}
+impl <R: Read> Fax3Reader<R> {
+    pub(crate) fn new(reader: R, len: usize, width: usize) -> impl Read {
+        Fax3Reader { reader, len, width}
+    }
+}
+impl <R: Read> Read for Fax3Reader<R> {
+    fn read(&mut self, _buf: &mut [u8]) -> io::Result<usize> {
+        unimplemented!()
+    }
+
+    fn read_exact(&mut self, buf: &mut [u8]) -> io::Result<()> {
+        use fax::{decoder, decoder::pels, Color};
+        let mut bytes: Vec<u8> = vec![0u8; self.len];
+        self.reader.read_exact(bytes.as_mut_slice())?;
+        let byte_width = (self.width + 7)/ 8;
+        let mut line = 0;
+        let v = decoder::decode_g3(bytes.into_iter(), |transitions| {
+            for (col, color) in pels(transitions, self.width as u16).enumerate() {
+                let val = match color {
+                    Color::Black => 0,
+                    Color::White => 255,
+                };
+                // upstream fax4 decoder assumes min-is-white, but we handle inversion outside of reading, so invert here
+                let val = u8::MAX - val;
+                let bit = (0b1000_0000 >> (col % 8)) & val;
+                let idx = line * byte_width + col / 8;
+                // println!("col: {}, bit_idx: {}, bit: {:08b}, idx: {}, existing: {:08b}", col, col % 8, bit, idx, buf[idx]);
+                buf[idx] += bit;
+            }
+            line += 1;
+        });
+        dbg!(v);
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

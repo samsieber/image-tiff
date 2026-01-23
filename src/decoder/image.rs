@@ -445,6 +445,7 @@ impl Image {
                 Box::new(Cursor::new(data))
             }
             CompressionMethod::Fax4 => Box::new(Fax4Reader::new(reader, compressed_length as usize, width)),
+            CompressionMethod::Fax3 => Box::new(Fax3Reader::new(reader, compressed_length as usize, width)),
             method => {
                 return Err(TiffError::UnsupportedError(
                     TiffUnsupportedError::UnsupportedCompressionMethod(method),
