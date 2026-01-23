@@ -1,5 +1,5 @@
 use super::ifd::{Directory, Value};
-use super::stream::{ByteOrder, DeflateReader, Fax4Reader, LZWReader, PackBitsReader};
+use super::stream::{ByteOrder, DeflateReader, Fax3Reader, Fax4Reader, LZWReader, PackBitsReader};
 use super::tag_reader::TagReader;
 use super::{fp_predict_f32, fp_predict_f64, DecodingBuffer, Limits};
 use super::{stream::SmartReader, ChunkType};
