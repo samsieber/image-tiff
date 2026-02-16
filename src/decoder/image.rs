@@ -4,7 +4,7 @@ use super::tag_reader::TagReader;
 use super::{fp_predict_f32, fp_predict_f64, DecodingBuffer, Limits};
 use super::{stream::SmartReader, ChunkType};
 use crate::tags::{
-    CompressionMethod, PhotometricInterpretation, PlanarConfiguration, Predictor, SampleFormat, Tag,
+    CompressionMethod, FillOrder, PhotometricInterpretation, PlanarConfiguration, Predictor, SampleFormat, Tag
 };
 use crate::{ColorType, TiffError, TiffFormatError, TiffResult, TiffUnsupportedError, UsageError};
 use std::convert::TryFrom;
@@ -73,6 +73,7 @@ pub(crate) struct Image {
     pub predictor: Predictor,
     pub jpeg_tables: Option<Arc<Vec<u8>>>,
     pub chunk_type: ChunkType,
+    pub fill_order: FillOrder,
     pub planar_config: PlanarConfiguration,
     pub strip_decoder: Option<StripDecodeState>,
     pub tile_attributes: Option<TileAttributes>,
@@ -200,6 +201,16 @@ impl Image {
             .transpose()?
             .unwrap_or(PlanarConfiguration::Chunky);
 
+        let fill_order = tag_reader
+            .find_tag(Tag::FillOrder)?
+            .map(Value::into_u16)
+            .transpose()?
+            .map(|fo| {
+                FillOrder::from_u16(fo).ok_or(TiffError::FormatError(TiffFormatError::UnknownFillOrder(fo)))
+            })
+            .transpose()?
+            .unwrap_or(FillOrder::Normal);
+
         let planes = match planar_config {
             PlanarConfiguration::Chunky => 1,
             PlanarConfiguration::Planar => samples,
@@ -304,6 +315,7 @@ impl Image {
             jpeg_tables,
             predictor,
             chunk_type,
+            fill_order,
             planar_config,
             strip_decoder,
             tile_attributes,
@@ -368,6 +380,7 @@ impl Image {
         photometric_interpretation: PhotometricInterpretation,
         compression_method: CompressionMethod,
         compressed_length: u64,
+        fill_order: FillOrder,
         jpeg_tables: Option<&[u8]>,
         width: usize,
     ) -> TiffResult<Box<dyn Read + 'r>> {
@@ -444,7 +457,7 @@ impl Image {
 
                 Box::new(Cursor::new(data))
             }
-            CompressionMethod::Fax4 => Box::new(Fax4Reader::new(reader, compressed_length as usize, width)),
+            CompressionMethod::Fax4 => Box::new(Fax4Reader::new(reader, compressed_length as usize, width, fill_order)),
             CompressionMethod::Fax3 => Box::new(Fax3Reader::new(reader, compressed_length as usize, width)),
             method => {
                 return Err(TiffError::UnsupportedError(
@@ -624,6 +637,7 @@ impl Image {
             photometric_interpretation,
             compression_method,
             *compressed_bytes,
+            self.fill_order,
             self.jpeg_tables.as_deref().map(|a| &**a),
             self.width as usize,
         )?;

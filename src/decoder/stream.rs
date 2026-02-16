@@ -3,6 +3,8 @@
 use std::convert::TryFrom;
 use std::io::{self, BufRead, BufReader, Read, Seek, Take};
 
+use crate::tags::FillOrder;
+
 /// Byte order of the TIFF file.
 #[derive(Clone, Copy, Debug)]
 pub enum ByteOrder {
@@ -321,10 +323,11 @@ where
     reader: R,
     len: usize,
     width: usize,
+    fill_order: FillOrder
 }
 impl <R: Read> Fax4Reader<R> {
-    pub(crate) fn new(reader: R, len: usize, width: usize) -> impl Read {
-        Fax4Reader { reader, len, width}
+    pub(crate) fn new(reader: R, len: usize, width: usize, fill_order: FillOrder) -> impl Read {
+        Fax4Reader { reader, len, width, fill_order}
     }
 }
 impl <R: Read> Read for Fax4Reader<R> {
@@ -338,6 +341,9 @@ impl <R: Read> Read for Fax4Reader<R> {
         self.reader.read_exact(bytes.as_mut_slice())?;
         let byte_width = (self.width + 7)/ 8;
         let mut line = 0;
+        if self.fill_order == FillOrder::Reversed {
+            bytes.iter_mut().for_each(|b: &mut u8| *b = b.reverse_bits());
+        }
         decoder::decode_g4(bytes.into_iter(), self.width as u16, None,  |transitions| {
             for (col, color) in pels(transitions, self.width as u16).enumerate() {
                 let val = match color {

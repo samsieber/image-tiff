@@ -234,6 +234,15 @@ pub enum SampleFormat(u16) unknown("An unknown extension sample format") {
 }
 
 tags! {
+    /// See [TIFF Tag FillOrder](https://web.archive.org/web/20240617003128/https://www.awaresystems.be/imaging/tiff/tifftags/fillorder.html)
+    /// for reference.
+    pub enum FillOrder(u16) unknown("An unknown fill order") {
+        Normal = 1,
+        Reversed = 2,
+    }
+}
+
+tags! {
     pub enum SubfileType(u16) {
         FullResolutionImage = 1,
         ReducedResolutionImage = 2,

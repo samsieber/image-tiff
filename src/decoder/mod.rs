@@ -580,6 +580,7 @@ impl<R: Read + Seek> Decoder<R> {
                 jpeg_tables: None,
                 predictor: Predictor::None,
                 chunk_type: ChunkType::Strip,
+                fill_order: crate::tags::FillOrder::Normal,
                 planar_config: PlanarConfiguration::Chunky,
                 strip_decoder: None,
                 tile_attributes: None,
